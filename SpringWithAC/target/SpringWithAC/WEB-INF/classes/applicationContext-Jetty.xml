@@ -1,0 +1,51 @@
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:cxf="http://camel.apache.org/schema/cxf"
+       xmlns:jaxrs="http://cxf.apache.org/jaxrs"
+       xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://camel.apache.org/schema/cxf http://camel.apache.org/schema/cxf/camel-cxf.xsd
+       http://cxf.apache.org/jaxrs http://cxf.apache.org/schemas/jaxrs.xsd
+       http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd
+    ">
+	
+	<cxf:rsClient id="rsClient" address="http://localhost:8008/empList"
+    loggingFeatureEnabled="true ">
+     <cxf:providers>
+       <ref bean="jsonProvider"/>
+    </cxf:providers>
+	</cxf:rsClient>
+	<bean id="restprocessor" class="com.apache.camel.processor.RestProcessor" />
+  <bean id="jsonProvider" class="org.apache.cxf.jaxrs.provider.json.JSONProvider"/>
+ 
+	<camelContext xmlns="http://camel.apache.org/schema/spring">
+
+		<route>
+			<!-- Just need to ignoreDeleteMethodMessageBody -->
+			<from uri="cxfrs://bean://rsClient" />
+			<convertBodyTo type="org.apache.cxf.jaxrs.JAXRSServerFactoryBean"/>
+			<process ref="restprocessor" />
+			<to uri="log:body?level=INFO" />
+		</route>
+		<route>
+			<from uri="direct:getstockinfo" />
+			<setHeader headerName="CamelHttpMethod">
+				<constant>GET</constant>
+			</setHeader>
+			<to uri="http://localhost:8008/empList" />
+			<to uri="file:/Users/nisum/Documents/Test1/output" />
+		</route>
+
+		<route>
+			<from uri="jetty:http://localhost:8008/empList" />
+			<!-- <convertBodyTo type="java.lang.String"/> -->
+			<process ref="restprocessor" />
+		</route>
+	</camelContext>
+
+
+	<!-- <bean id="jmsConFactory" class="org.apache.activemq.ActiveMQConnectionFactory"> 
+		<property name="brokerURL" value="tcp://localhost:61616" /> </bean> <bean 
+		id="activeMq" class="org.apache.activemq.camel.component.ActiveMQComponent"> 
+		<property name="connectionFactory" ref="jmsConFactory" /> </bean> -->
+</beans>
